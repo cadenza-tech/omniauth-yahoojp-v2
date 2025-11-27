@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-RSpec.describe OmniAuth::Strategies::YahoojpV2 do # rubocop:disable RSpec/SpecFilePathFormat
+RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFilePathFormat
   let(:options) { {} }
   let(:strategy) { described_class.new('app', 'client_id', 'client_secret', options) }
 
   describe 'default options' do
     it 'has correct default values' do
-      expect(strategy.options.name).to eq('yahoojp_v2')
+      expect(strategy.options.name).to eq('yahoojp')
       expect(strategy.options.client_options.site).to eq('https://auth.login.yahoo.co.jp')
       expect(strategy.options.client_options.authorize_url).to eq('/yconnect/v2/authorization')
       expect(strategy.options.client_options.token_url).to eq('/yconnect/v2/token')
