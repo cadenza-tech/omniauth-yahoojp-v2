@@ -7,14 +7,14 @@ require 'base64'
 
 module OmniAuth
   module Strategies
-    class YahoojpV2 < OmniAuth::Strategies::OAuth2
+    class Yahoojp < OmniAuth::Strategies::OAuth2
       DEFAULT_SCOPE = 'openid profile email'
       DEFAULT_JWT_LEEWAY = 600
       USER_INFO_URL = 'https://userinfo.yahooapis.jp/yconnect/v2/attribute'
       JWKS_URL = 'https://auth.login.yahoo.co.jp/yconnect/v2/jwks'
       ID_TOKEN_ISSUER = 'https://auth.login.yahoo.co.jp/yconnect/v2'
 
-      option :name, 'yahoojp_v2'
+      option :name, 'yahoojp'
       option :client_options, {
         site: 'https://auth.login.yahoo.co.jp',
         authorize_url: '/yconnect/v2/authorization',

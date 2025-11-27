@@ -38,7 +38,7 @@ Add the following to `config/initializers/devise.rb`:
 ```ruby
 # config/initializers/devise.rb
 Devise.setup do |config|
-  config.omniauth :yahoojp_v2, ENV['YAHOOJP_CLIENT_ID'], ENV['YAHOOJP_CLIENT_SECRET']
+  config.omniauth :yahoojp, ENV['YAHOOJP_CLIENT_ID'], ENV['YAHOOJP_CLIENT_SECRET']
 end
 ```
 
@@ -57,7 +57,7 @@ Add the OmniAuth configuration to your Devise model:
 class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable,
-         :omniauthable, omniauth_providers: [:yahoojp_v2]
+         :omniauthable, omniauth_providers: [:yahoojp]
 end
 ```
 
@@ -68,10 +68,10 @@ You can configure several options:
 ```ruby
 # config/initializers/devise.rb
 Devise.setup do |config|
-  config.omniauth :yahoojp_v2, ENV['YAHOOJP_CLIENT_ID'], ENV['YAHOOJP_CLIENT_SECRET'],
+  config.omniauth :yahoojp, ENV['YAHOOJP_CLIENT_ID'], ENV['YAHOOJP_CLIENT_SECRET'],
     {
       scope: 'openid profile email address', # Specify OAuth scopes
-      callback_path: '/custom/yahoojp_v2/callback', # Custom callback path
+      callback_path: '/custom/yahoojp/callback', # Custom callback path
       prompt: 'consent', # Optional: force consent screen
       display: 'popup', # Optional: auth page display mode
       max_age: 600, # Optional: max seconds since last auth
@@ -93,7 +93,7 @@ After successful authentication, the auth hash will be available in `request.env
 
 ```ruby
 {
-  provider: 'yahoojp_v2',
+  provider: 'yahoojp',
   uid: 'FQBSQOIDGW5PV4NHAAUY7BWAMU',
   info: {
     name: '矢風太郎',
