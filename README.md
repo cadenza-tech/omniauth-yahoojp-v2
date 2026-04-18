@@ -186,4 +186,4 @@ Everyone interacting in the OmniauthYahoojpV2 project's codebases, issue tracker
 
 ## Sponsor
 
-You can sponsor this project on [Patreon](https://patreon.com/CadenzaTech).
+You can sponsor this project on [GitHub Sponsors](https://github.com/sponsors/cadenza-tech).
