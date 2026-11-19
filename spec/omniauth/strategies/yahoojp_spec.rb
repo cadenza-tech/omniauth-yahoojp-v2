@@ -433,7 +433,7 @@ RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFile
   describe '#authorize_params' do
     let(:request) { instance_double(Rack::Request, params: {}) }
 
-    before { allow(strategy).to receive_messages(request: request, session: {}) }
+    before { allow(strategy).to receive_messages(request: request, session: {}, full_host: 'https://example.com') }
 
     it 'includes default scope when not specified' do
       params = strategy.authorize_params
