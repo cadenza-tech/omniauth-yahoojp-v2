@@ -445,6 +445,11 @@ RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFile
       expect(params[:response_type]).to eq('code')
     end
 
+    it 'stores generated nonce in session' do
+      params = strategy.authorize_params
+      expect(strategy.session['omniauth.nonce']).to eq(params[:nonce])
+    end
+
     context 'with scope in request params' do
       let(:request) { instance_double(Rack::Request, params: { 'scope' => 'openid profile' }) }
 
@@ -457,10 +462,18 @@ RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFile
     context 'with state in request params' do
       let(:request) { instance_double(Rack::Request, params: { 'state' => 'af0ifjsldkj' }) }
 
-      it 'includes state in params and stores in session' do
+      it 'includes state in params' do
         params = strategy.authorize_params
         expect(params[:state]).to eq('af0ifjsldkj')
-        expect(strategy.session['omniauth.state']).to eq('af0ifjsldkj')
+      end
+    end
+
+    context 'with empty state in request params' do
+      let(:request) { instance_double(Rack::Request, params: { 'state' => '' }) }
+
+      it 'generates state' do
+        params = strategy.authorize_params
+        expect(params[:state]).to match(/\A\h{48}\z/)
       end
     end
 
@@ -498,6 +511,7 @@ RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFile
       it 'includes max_age in params and stores in session' do
         params = strategy.authorize_params
         expect(params[:max_age]).to eq(600)
+        expect(strategy.session['omniauth.max_age']).to eq(600)
       end
     end
 
@@ -1005,6 +1019,64 @@ RSpec.describe OmniAuth::Strategies::Yahoojp do # rubocop:disable RSpec/SpecFile
       it 'does not call fail!' do
         strategy.send(:verify_auth_time, id_token)
         expect(strategy).not_to have_received(:fail!)
+      end
+    end
+  end
+
+  describe 'sign-in flow' do
+    let(:callback_env) { {} }
+    let(:token_request_params) { {} }
+    let(:app) do
+      session = {}
+      captured_env = callback_env
+      Rack::Builder.new do
+        use(Rack::Config) { |env| env['rack.session'] = session }
+        use OmniAuth::Builder do
+          provider :yahoojp, 'client_id', 'client_secret', skip_jwt: true
+        end
+        run ->(env) { [200, {}, []].tap { captured_env.update(env) } }
+      end
+    end
+
+    before do
+      allow(OmniAuth.config).to receive_messages(logger: Logger.new(IO::NULL), request_validation_phase: nil)
+      stub_request(:post, 'https://auth.login.yahoo.co.jp/yconnect/v2/token').to_return do |request|
+        token_request_params.update(Rack::Utils.parse_query(request.body))
+        token = { access_token: 'token', id_token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJzdWIiOiJ5YWhvb2pwMTIzIn0.' }
+        { headers: { 'Content-Type' => 'application/json' }, body: JSON.generate(token) }
+      end
+      stub_request(:get, 'https://userinfo.yahooapis.jp/yconnect/v2/attribute')
+        .to_return(headers: { 'Content-Type' => 'application/json' }, body: JSON.generate(sub: 'yahoojp123'))
+    end
+
+    def sign_in(request_params)
+      mock_request = Rack::MockRequest.new(app)
+      response = mock_request.post('/auth/yahoojp', params: request_params)
+      authorize_params = Rack::Utils.parse_query(URI(response['location']).query)
+      mock_request.get('/auth/yahoojp/callback', params: { code: 'code', state: authorize_params['state'] })
+      authorize_params
+    end
+
+    def code_challenge(code_verifier)
+      Base64.urlsafe_encode64(Digest::SHA256.digest(code_verifier), padding: false)
+    end
+
+    it 'completes with a generated state' do
+      authorize_params = sign_in('origin' => '/back')
+
+      expect(callback_env['omniauth.auth'].uid).to eq('yahoojp123')
+      expect(callback_env['omniauth.origin']).to eq('/back')
+      expect(code_challenge(token_request_params['code_verifier'])).to eq(authorize_params['code_challenge'])
+    end
+
+    context 'with state in request params' do
+      it 'completes with the given state' do
+        authorize_params = sign_in('origin' => '/back', 'state' => 'custom-state')
+
+        expect(authorize_params['state']).to eq('custom-state')
+        expect(callback_env['omniauth.auth'].uid).to eq('yahoojp123')
+        expect(callback_env['omniauth.origin']).to eq('/back')
+        expect(code_challenge(token_request_params['code_verifier'])).to eq(authorize_params['code_challenge'])
       end
     end
   end
