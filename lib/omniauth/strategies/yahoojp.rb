@@ -108,21 +108,6 @@ module OmniAuth
         end
       end
 
-      def prune!(hash)
-        hash.delete_if do |_, value|
-          prune!(value) if value.is_a?(Hash)
-          empty?(value)
-        end
-      end
-
-      def empty?(value)
-        value.nil? || (value.respond_to?(:empty?) && value.empty?)
-      end
-
-      def decode_id_token(id_token)
-        JSON::JWT.decode(id_token, :skip_verification)
-      end
-
       def id_token_info
         return @id_token_info if defined?(@id_token_info)
 
@@ -136,6 +121,10 @@ module OmniAuth
         verify_id_token(decoded_id_token) unless options.skip_jwt
         @id_token_info[:decoded] = decoded_id_token
         @id_token_info
+      end
+
+      def decode_id_token(id_token)
+        JSON::JWT.decode(id_token, :skip_verification)
       end
 
       def verify_id_token(id_token)
@@ -201,12 +190,6 @@ module OmniAuth
         fail!(:c_hash_mismatch) if id_token[:c_hash] != expected_hash
       end
 
-      def generate_hash(value)
-        hash = Digest::SHA256.digest(value)
-        half_of_hash = hash[0, hash.length / 2]
-        Base64.urlsafe_encode64(half_of_hash, padding: false)
-      end
-
       def verify_exp(id_token)
         fail!(:id_token_expired) if id_token[:exp] < Time.now.to_i
       end
@@ -222,6 +205,23 @@ module OmniAuth
         return unless max_age
 
         fail!(:auth_time_too_old) if (id_token[:auth_time] + max_age.to_i) < Time.now.to_i
+      end
+
+      def generate_hash(value)
+        hash = Digest::SHA256.digest(value)
+        half_of_hash = hash[0, hash.length / 2]
+        Base64.urlsafe_encode64(half_of_hash, padding: false)
+      end
+
+      def prune!(hash)
+        hash.delete_if do |_, value|
+          prune!(value) if value.is_a?(Hash)
+          empty?(value)
+        end
+      end
+
+      def empty?(value)
+        value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
     end
   end
